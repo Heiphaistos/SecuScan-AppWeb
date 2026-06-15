@@ -2,15 +2,9 @@
 
 ## Démonstration
 
-![Apercu](assets/demo.gif)
-
-[▶ Voir la démonstration complète](https://github.com/heiphaistos44-crypto/SecuScan-AppWeb/raw/main/assets/demo.mp4)
-
-
-Version web de [SecuScan](https://github.com/heiphaistos44-crypto/SecuScan) — analyse de sécurité du code (SAST), des secrets et des binaires, en ligne.
-
-**Prod : https://secuscan.heiphaistos.org**
-
+<video controls width="100%" preload="none">
+  <source src="https://mydepot.heiphaistos.org/Heiphaistos/SecuScan-AppWeb/releases/download/v1.0.0/demo.mp4" type="video/mp4">
+</video>
 ## Fonctionnement
 
 Uploadez **un fichier** (code source, script, config, binaire PE) **ou un ZIP de projet entier** → analyse récursive → rapport de vulnérabilités classées par sévérité, avec remédiation et hints de faux positifs.
