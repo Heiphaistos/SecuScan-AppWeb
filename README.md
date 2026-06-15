@@ -3,7 +3,7 @@
 ## Démonstration
 
 <video controls width="100%" preload="none">
-  <source src="https://mydepot.heiphaistos.org/Heiphaistos/SecuScan-AppWeb/releases/download/v1.0.0/demo.mp4" type="video/mp4">
+  <source src="https://media.heiphaistos.org/videos/secuscan.mp4" type="video/mp4">
 </video>
 ## Fonctionnement
 
