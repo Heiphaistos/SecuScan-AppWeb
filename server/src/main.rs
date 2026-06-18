@@ -30,7 +30,7 @@ use tower_governor::{
 use tower_http::{
     cors::{AllowOrigin, CorsLayer},
     services::{ServeDir, ServeFile},
-    set_header::SetResponseHeaderLayer,
+    set_response_header::SetResponseHeaderLayer,
     timeout::TimeoutLayer,
 };
 
@@ -261,10 +261,6 @@ async fn main() -> anyhow::Result<()> {
 
     let port: u16 = std::env::var("PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(3005);
     let static_dir = std::env::var("STATIC_DIR").unwrap_or_else(|_| "../web/dist".into());
-    // Vérifie que le répertoire statique existe pour détecter tôt une mauvaise config
-    if !std::path::Path::new(&static_dir).exists() {
-        tracing::warn!("STATIC_DIR '{static_dir}' n'existe pas — le frontend ne sera pas servi");
-    }
     let allowed_origin = std::env::var("ALLOWED_ORIGIN")
         .unwrap_or_else(|_| "https://secuscan-app.heiphaistos.org".into());
 
@@ -283,10 +279,10 @@ async fn main() -> anyhow::Result<()> {
     let cors = CorsLayer::new()
         .allow_origin(AllowOrigin::exact(
             allowed_origin.parse::<HeaderValue>()
-                .map_err(|e| anyhow!("ALLOWED_ORIGIN invalide ('{allowed_origin}'): {e}"))?,
+                .map_err(|e| anyhow!("ALLOWED_ORIGIN invalide : {e}"))?,
         ));
 
-    // Security headers appliqués à toutes les réponses (API + static)
+    // Security headers appliqués à toutes les réponses
     let csp = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'";
     let sec_headers = tower::ServiceBuilder::new()
         .layer(SetResponseHeaderLayer::if_not_present(
@@ -296,10 +292,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(SetResponseHeaderLayer::if_not_present(
             header::X_CONTENT_TYPE_OPTIONS,
             HeaderValue::from_static("nosniff"),
-        ))
-        .layer(SetResponseHeaderLayer::if_not_present(
-            header::X_FRAME_OPTIONS,
-            HeaderValue::from_static("DENY"),
         ))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::REFERRER_POLICY,
@@ -316,7 +308,7 @@ async fn main() -> anyhow::Result<()> {
         .layer(cors)
         .layer(GovernorLayer { config: governor_conf })
         .layer(DefaultBodyLimit::max(MAX_UPLOAD_BYTES))
-        .layer(TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(180)))
+        .layer(TimeoutLayer::new(Duration::from_secs(180)))
         .with_state(permits);
 
     let index = format!("{static_dir}/index.html");
