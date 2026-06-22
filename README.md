@@ -1,64 +1,150 @@
-﻿# SecuScan Web
+<div align="center">
+  <h1>🛡️ SecuScan AppWeb</h1>
+  <p><strong>Scanner de sécurité web — analyse YARA, secrets exposés et fichiers PE via interface moderne.</strong></p>
 
-## Démonstration
+  ![Version](https://img.shields.io/badge/version-1.0.0-blue)
+  ![Stack](https://img.shields.io/badge/stack-Rust%20%2B%20Axum%20%2B%20Vue%203-purple)
+  ![Platform](https://img.shields.io/badge/platform-Web%20%2F%20Docker-informational)
+  ![Prod](https://img.shields.io/badge/prod-secuscan--app.heiphaistos.org-brightgreen)
+  ![License](https://img.shields.io/badge/licence-MIT-green)
+</div>
+
+---
+
+## 📋 Description
+
+SecuScan AppWeb est la version web de l'outil SecuScan. Il permet d'analyser des fichiers via un navigateur : détection de règles YARA, repérage de secrets en clair, analyse des headers PE Windows, et export de rapports détaillés. L'API backend est écrite en Rust/Axum pour des performances maximales.
+
+**URL de production** : [https://secuscan-app.heiphaistos.org](https://secuscan-app.heiphaistos.org)
+
+---
+
+## 📺 Démonstration
 
 <video src="https://media.heiphaistos.org/videos/secuscan.mp4" controls width="100%" preload="none"></video>
-## Fonctionnement
 
-Uploadez **un fichier** (code source, script, config, binaire PE) **ou un ZIP de projet entier** → analyse récursive → rapport de vulnérabilités classées par sévérité, avec remédiation et hints de faux positifs.
+---
 
-## Architecture
+## ✨ Fonctionnalités
 
-- `server/` — Rust **axum** : API + frontend statique. Réutilise les parsers du desktop v1.0.5 (`sast`, `script`, `config`, `binary`) + modèles + export, **sans Tauri ni LLM ni keystore**.
-- `web/` — **Vue 3 + Vite** : dropzone, stats sévérité filtrables, table de vulnérabilités, export JSON.
-- Scan en répertoire temporaire isolé, **supprimé immédiatement après** (RAII).
+- **Scan YARA** : application de règles personnalisées sur les fichiers uploadés
+- **Détection de secrets** : repérage de clés API, tokens, mots de passe en clair
+- **Analyse PE** : parsing des headers de fichiers Windows (sections, imports, exports, entrypoint)
+- **Rapports exportables** : génération de rapports HTML et TXT téléchargeables
+- **Interface Vue 3 moderne** : upload drag & drop, résultats en temps réel
+- **API REST performante** : backend Rust/Axum avec validation stricte des inputs
+- **Authentification** : routes protégées, rate limiting sur les endpoints sensibles
 
-### Détections (identiques au desktop)
-- **SAST** : injection SQL, XSS, command injection, path traversal, désérialisation, crypto faible, CORS, open redirect, secrets en dur
-- **Scripts** : obfuscation, élévation de privilèges, désactivation AV, download de payload, exécution arbitraire
-- **Config/secrets** : clés API, mots de passe, JWT, chaînes de connexion, chaînes haute entropie
-- **Binaires PE** : ASLR/DEP manquants, signature, + **YARA** (injection DLL, process hollowing, persistance, ransomware, shellcode)
-- **Hints de faux positifs** : contexte test/exemple/placeholder, MD5 checksum vs password, etc.
+---
 
-### API
+## 🛠️ Stack technique
 
-| Route | Méthode | Détail |
-|-------|---------|--------|
-| `/api/scan` | POST | multipart `file` (fichier ou ZIP) → ScanResult JSON |
-| `/api/health` | GET | `{status, version}` |
+| Couche | Technologies |
+|--------|-------------|
+| Frontend | Vue 3 + TypeScript + Vite |
+| Backend | Rust + Axum |
+| Analyse | YARA-rust, goblin (PE parsing) |
+| Base de données | SQLite (sqlx) |
+| Conteneurisation | Docker + Docker Compose |
+| Reverse proxy | nginx (VPS) |
+| Process manager | PM2 (port 3005) |
 
-### Protections (accès public)
+---
 
-- Upload max **80 MB**
-- **Anti zip-slip** (chemins `..`/absolus rejetés) + **anti zip-bomb** (600 MB décompressés / 20k entrées max)
-- Rate-limit **8 scans/min/IP**, max **2 scans simultanés**, timeout 180 s
-- Cap 512 KB par fichier pour les regex, timeout 10 s par fichier
-- Fichiers jamais conservés (temp dir supprimé après scan)
-- Écoute `127.0.0.1:3005` (exposé via nginx)
+## 🚀 Installation & Déploiement
 
-## Dev local
+### Prérequis
 
-```bash
-cd server && cargo run                 # backend :3005
-cd web && npm install && npm run dev   # frontend :1423 (proxy /api)
-```
+- Docker + Docker Compose
+- Node.js 18+ (développement frontend)
+- Rust stable (développement backend)
 
-## Déploiement VPS (212.227.140.45)
+### Démarrage rapide (Docker)
 
 ```bash
-# 1. Build frontend local : cd web && npm run build
-# 2. Sync vers /opt/secuscan puis :
-cd /opt/secuscan && bash deploy/deploy.sh
+# Cloner le dépôt
+git clone https://mydepot.heiphaistos.org/Heiphaistos/SecuScan-AppWeb.git
+cd SecuScan-AppWeb
 
-# 3. nginx (une fois) :
-cp deploy/nginx-secuscan.conf /etc/nginx/sites-available/secuscan
-ln -s /etc/nginx/sites-available/secuscan /etc/nginx/sites-enabled/
-nginx -t && systemctl reload nginx
-certbot --nginx -d secuscan.heiphaistos.org --non-interactive --agree-tos --redirect
+# Configurer les variables d'environnement
+cp .env.example .env
+# Éditer .env : JWT_SECRET, ALLOWED_ORIGINS, MAX_FILE_SIZE
 
-# 4. DNS Ionos : A secuscan → 212.227.140.45
+# Lancer les conteneurs
+docker compose up -d
+
+# Vérifier le statut
+docker compose ps
 ```
 
-## Versions
+### Développement local
 
-- **1.0.0** (2026-06-12) — portage web depuis SecuScan desktop v1.0.5 (parsers/export réutilisés, scan ZIP ajouté)
+```bash
+# Backend Rust
+cd backend
+cargo run
+
+# Frontend Vue 3 (dans un autre terminal)
+cd frontend
+npm install
+npm run dev
+```
+
+### Variables d'environnement
+
+| Variable | Description | Exemple |
+|----------|-------------|---------|
+| `JWT_SECRET` | Secret de signature JWT (min. 32 chars) | `changeme_prod_secret` |
+| `ALLOWED_ORIGINS` | CORS whitelist | `https://secuscan-app.heiphaistos.org` |
+| `MAX_FILE_SIZE` | Taille max upload (bytes) | `10485760` |
+| `PORT` | Port d'écoute backend | `3005` |
+| `DATABASE_URL` | Chemin SQLite | `./data/secuscan.db` |
+
+---
+
+## 📂 Architecture
+
+```
+SecuScan-AppWeb/
+├── backend/
+│   ├── src/
+│   │   ├── main.rs            # Entrée Axum, routes
+│   │   ├── handlers/
+│   │   │   ├── scan.rs        # Upload + analyse
+│   │   │   └── report.rs      # Export HTML/TXT
+│   │   ├── services/
+│   │   │   ├── yara.rs        # Moteur YARA
+│   │   │   ├── secrets.rs     # Détection secrets
+│   │   │   └── pe_parser.rs   # Analyse PE
+│   │   └── middleware/
+│   │       ├── auth.rs        # JWT middleware
+│   │       └── rate_limit.rs  # Tower governor
+│   └── Cargo.toml
+├── frontend/
+│   ├── src/
+│   │   ├── components/        # Composants Vue 3
+│   │   ├── views/             # Pages principales
+│   │   └── api/               # Appels API typés
+│   └── package.json
+├── docker-compose.yml
+├── .env.example
+└── nginx/
+    └── secuscan.conf          # Config reverse proxy
+```
+
+---
+
+## 🔒 Sécurité
+
+- Validation MIME + extension + taille sur chaque upload (serveur, jamais client seul)
+- Rate limiting via `tower_governor` (Axum)
+- JWT avec expiration courte + token_version (logout propre)
+- Aucune stack trace exposée dans les réponses d'erreur
+- CORS restreint à l'origine de production
+- Healthcheck Docker sur `127.0.0.1` (pas `localhost`)
+
+---
+
+## 📝 Licence
+
+MIT — © 2026 Heiphaistos
